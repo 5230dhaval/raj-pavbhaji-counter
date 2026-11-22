@@ -196,6 +196,17 @@ function loadState(){
 function saveLocal(){localStorage.setItem(LS_STATE,JSON.stringify(state));}
 function syncOn(){return !!(cfg.repo && cfg.token && cfg.path);}
 
+/* ---------- Time Helper ---------- */
+function getTimeAmPm() {
+  return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+}
+function fmtTime(t){
+  // If it's a string (already formatted AM/PM from JSON), just return it
+  if (typeof t === 'string' && t.includes('M')) return t;
+  // Otherwise, format the old timestamp format
+  return new Date(t).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}).toUpperCase();
+}
+
 /* ---------- GitHub helpers ---------- */
 function enc(str){
   const b=new TextEncoder().encode(str);let bin='';b.forEach(x=>bin+=String.fromCharCode(x));return btoa(bin);
@@ -267,7 +278,8 @@ async function generate(){
   const ok=await mutate(s=>{
     if(p>5){s.lastJT+=1;tok='JT'+String(s.lastJT).padStart(3,'0');}
     else{s.last+=1;tok=String(s.last);}
-    s.queue.push({n:tok,p:p,t:Date.now()});
+    // Save time as formatted AM/PM string
+    s.queue.push({n:tok,p:p,t:getTimeAmPm()});
   });
   if(ok){
     toast(`Token ${tok} generated · ${p} person${p>1?'s':''}`);
@@ -281,8 +293,9 @@ async function served(n){
     if(i>-1){
       const item=s.queue.splice(i,1)[0];
       s.served+=1;
-      s.lastServed={n:item.n,p:item.p,t:Date.now()};
-      if(!isJT(item.n)){s.lastServedReg={n:item.n,p:item.p,t:Date.now()};}
+      // Save time as formatted AM/PM string
+      s.lastServed={n:item.n,p:item.p,t:getTimeAmPm()};
+      if(!isJT(item.n)){s.lastServedReg={n:item.n,p:item.p,t:getTimeAmPm()};}
     }
   });
 }
@@ -291,7 +304,6 @@ async function skipped(n){
     const i=s.queue.findIndex(x=>String(x.n)===String(n));
     if(i>-1){
       s.queue.splice(i,1);
-      // We do not update s.served or s.lastServedReg for skipped tokens
     }
   });
 }
@@ -301,9 +313,6 @@ async function resetDay(){
 }
 
 /* ---------- render ---------- */
-function fmtTime(t){
-  return new Date(t).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}).toUpperCase();
-}
 function isJT(n){return String(n).startsWith('JT');}
 
 function rowHtml(x,i,isFirst){
