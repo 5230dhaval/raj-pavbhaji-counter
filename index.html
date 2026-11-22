@@ -98,7 +98,6 @@
 <div class="wrap">
   <header>
     <div class="brand">
-      <!-- CSS Logo recreating the image -->
       <div class="logo">
         <div class="logo-text">RAJ</div>
         <div class="logo-sub">PAVBHAJI</div>
@@ -107,7 +106,7 @@
       <div><h1>Raj Pavbhaji</h1><div class="sub">Token Counter</div></div>
     </div>
     <div class="sync">
-      <span class="dot" id="dot"></span><span id="syncTxt">Local only</span>
+      <span class="dot" id="dot"></span><span id="syncTxt">Connecting...</span>
       <button class="ghost" id="btnSettings" style="padding:6px 10px">⚙ Sync</button>
     </div>
   </header>
@@ -157,11 +156,23 @@
 </dialog>
 
 <script>
+/* ==========================================================
+   ⬇️ FILL IN YOUR GITHUB DETAILS HERE TO AUTO-SYNC ⬇️
+   ========================================================== */
+const DEFAULT_CONFIG = {
+  repo: "",          // Example: "dhaval/raj-pavbhaji-data"
+  branch: "main",    // Usually "main"
+  path: "tokens.json",
+  token: ""          // Your fine-grained PAT (github_pat_...)
+};
+/* ========================================================== */
+
 const LS_STATE='tm_state_v1', LS_CFG='tm_cfg_v1';
 const $=id=>document.getElementById(id);
 
 let state=loadState();
-let cfg=JSON.parse(localStorage.getItem(LS_CFG)||'{}');
+// Load config from localStorage, or fallback to the hardcoded DEFAULT_CONFIG
+let cfg=JSON.parse(localStorage.getItem(LS_CFG)||'null') || DEFAULT_CONFIG;
 let sha=null, busy=false;
 
 function blank(){return {last:0, lastJT:0, served:0, queue:[], lastServed:null, lastServedReg:null};}
@@ -178,7 +189,7 @@ function loadState(){
   try{return norm(JSON.parse(localStorage.getItem(LS_STATE)));}catch(e){return blank();}
 }
 function saveLocal(){localStorage.setItem(LS_STATE,JSON.stringify(state));}
-function syncOn(){return !!(cfg.repo&&cfg.token&&cfg.path);}
+function syncOn(){return !!(cfg.repo && cfg.token && cfg.path);}
 
 /* ---------- GitHub helpers ---------- */
 function enc(str){
@@ -351,7 +362,7 @@ $('cSave').onclick=async()=>{
     localStorage.setItem(LS_CFG,JSON.stringify(cfg));
     saveLocal();render();setSync('on','Synced');$('dlg').close();toast('Sync connected');
   }catch(e){
-    cfg=JSON.parse(localStorage.getItem(LS_CFG)||'{}');
+    cfg=JSON.parse(localStorage.getItem(LS_CFG)||'null') || DEFAULT_CONFIG;
     setSync(syncOn()?'err':'',syncOn()?e.message:'Local only');toast('Failed: '+e.message);
   }
 };
@@ -361,7 +372,7 @@ $('btnGen').onclick=generate;
 $('persons').addEventListener('keydown',e=>{if(e.key==='Enter')generate();});
 $('btnReset').onclick=resetDay;
 render();
-if(syncOn()){setSync('busy','Connecting…');refresh();}
+if(syncOn()){setSync('busy','Connecting…');refresh();}else{setSync('','Local only');}
 setInterval(refresh,6000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
 </script>
