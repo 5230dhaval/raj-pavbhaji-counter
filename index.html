@@ -21,7 +21,6 @@
     background-attachment:fixed;
   }
   
-  /* CSS Logo */
   .logo{
     width:56px;height:56px;border-radius:50%;background:var(--logo-bg);
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -201,9 +200,7 @@ function getTimeAmPm() {
   return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
 }
 function fmtTime(t){
-  // If it's a string (already formatted AM/PM from JSON), just return it
   if (typeof t === 'string' && t.includes('M')) return t;
-  // Otherwise, format the old timestamp format
   return new Date(t).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}).toUpperCase();
 }
 
@@ -249,6 +246,14 @@ async function mutate(fn){
       const remote=await pull();
       if(remote)state=remote;
       fn(state);
+      
+      // AUTO-CLEANUP: Convert any old numeric timestamps to AM/PM strings
+      state.queue.forEach(x => {
+        if (typeof x.t === 'number') x.t = fmtTime(x.t);
+      });
+      if (state.lastServed && typeof state.lastServed.t === 'number') state.lastServed.t = fmtTime(state.lastServed.t);
+      if (state.lastServedReg && typeof state.lastServedReg.t === 'number') state.lastServedReg.t = fmtTime(state.lastServedReg.t);
+
       const r=await push(state);
       if(r.ok){saveLocal();render();setSync('on','Synced');return true;}
       if(r.status!==409&&r.status!==422)throw new Error('GitHub '+r.status);
@@ -278,7 +283,6 @@ async function generate(){
   const ok=await mutate(s=>{
     if(p>5){s.lastJT+=1;tok='JT'+String(s.lastJT).padStart(3,'0');}
     else{s.last+=1;tok=String(s.last);}
-    // Save time as formatted AM/PM string
     s.queue.push({n:tok,p:p,t:getTimeAmPm()});
   });
   if(ok){
@@ -293,7 +297,6 @@ async function served(n){
     if(i>-1){
       const item=s.queue.splice(i,1)[0];
       s.served+=1;
-      // Save time as formatted AM/PM string
       s.lastServed={n:item.n,p:item.p,t:getTimeAmPm()};
       if(!isJT(item.n)){s.lastServedReg={n:item.n,p:item.p,t:getTimeAmPm()};}
     }
